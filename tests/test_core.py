@@ -91,29 +91,49 @@ def _tool_call(name, args, call_id):
     return AIMessage(content="", tool_calls=[{"name": name, "args": args, "id": call_id}])
 
 
-def test_graph_runs_tools_and_keeps_verified_citizen(monkeypatch):
+def test_graph_interrupts_for_verification_and_resumes(monkeypatch):
     import agent
 
+    citizen = db.find_citizen_by_national_code("0023456789")
+    verdicts = iter([(None, "کارت ملی خوانا نبود"), (citizen, None)])
+    monkeypatch.setattr(agent, "verify_identity", lambda path: next(verdicts))
     llm = ScriptedLLM([
-        _tool_call("citizen_service", {"service": "tax"}, "c1"), AIMessage(content="نیاز به احراز هویت"),
-        _tool_call("citizen_service", {"service": "tax"}, "c2"), AIMessage(content="مالیات شما"),
-        _tool_call("calculate_usage", {"sku": "F-001", "area_hectare": 2}, "c3"), AIMessage(content="۱۰ کیسه"),
+        _tool_call("citizen_service", {"service": "tax"}, "c1"), AIMessage(content="مالیات شما"),
+        _tool_call("calculate_usage", {"sku": "F-001", "area_hectare": 2}, "c2"), AIMessage(content="۱۰ کیسه"),
     ])
     monkeypatch.setattr(agent, "get_llm", lambda: llm)
 
-    reply, trace = agent.chat("s1", "مالیات من؟")
-    assert reply == "نیاز به احراز هویت" and "verification_required" in trace["steps"][0]["result"]
-    assert "not verified" in llm.prompts[0][0].content
+    assert agent.verify("s1", "x.png")[0] == agent.NO_IMAGE_NEEDED
 
-    citizen = db.find_citizen_by_national_code("0023456789")
-    reply, trace = agent.chat("s1", agent.VERIFIED_FOLLOW_UP, citizen=citizen)
-    assert "125000000" in trace["steps"][0]["result"] and len(trace["steps"]) == 1
+    reply, trace = agent.chat("s1", "مالیات من؟")
+    assert "احراز هویت لازم است" in reply and agent.is_awaiting_image("s1")
+    assert "interrupt" in trace["steps"][0]["result"]
+
+    reply, trace = agent.verify("s1", "bad.png")
+    assert "کارت ملی خوانا نبود" in reply and agent.is_awaiting_image("s1")
+
+    reply, trace = agent.verify("s1", "good.png")
+    assert reply == "مالیات شما" and not agent.is_awaiting_image("s1")
+    assert [s["tool"] for s in trace["steps"]] == ["verify_identity", "citizen_service"]
+    assert "125000000" in trace["steps"][1]["result"]
 
     reply, trace = agent.chat("s1", "اوره برای ۲ هکتار؟")
     assert "14500000" in trace["steps"][0]["result"]
-    assert agent.get_citizen("s1")["last_name"] == "احمدی"
     assert "verified as مریم احمدی" in llm.prompts[-1][0].content
     assert agent.get_citizen("other-session") is None
+
+
+def test_text_during_interrupt_cancels_verification(monkeypatch):
+    import agent
+
+    llm = ScriptedLLM([_tool_call("citizen_service", {"service": "tax"}, "c1"), AIMessage(content="باشه، قیمت اوره")])
+    monkeypatch.setattr(agent, "get_llm", lambda: llm)
+
+    agent.chat("s2", "مالیات من؟")
+    reply, _ = agent.chat("s2", "بیخیال، قیمت اوره؟")
+    assert reply == "باشه، قیمت اوره" and not agent.is_awaiting_image("s2")
+    sent = llm.prompts[-1]
+    assert sent[-2].content.startswith("cancelled") and sent[-1].content == "بیخیال، قیمت اوره؟"
 
 
 def test_api_products_and_chat(monkeypatch):
@@ -131,7 +151,7 @@ def test_api_products_and_chat(monkeypatch):
     llm = ScriptedLLM([_tool_call("get_product", {"sku": "F-001"}, "c1"), AIMessage(content="قیمت اوره")])
     monkeypatch.setattr(agent, "get_llm", lambda: llm)
     body = client.post("/chat", json={"message": "قیمت اوره؟"}).json()
-    assert body["reply"] == "قیمت اوره" and body["verified"] is False
+    assert body["reply"] == "قیمت اوره" and body["verified"] is False and body["awaiting_image"] is False
     assert body["trace"]["steps"][0]["tool"] == "get_product" and len(body["session_id"]) == 32
 
 

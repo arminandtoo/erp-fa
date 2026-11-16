@@ -46,6 +46,8 @@ def status_text(session_id):
     citizen = agent.get_citizen(session_id)
     if citizen:
         return f"✅ احراز هویت شده: {citizen['first_name']} {citizen['last_name']}"
+    if agent.is_awaiting_image(session_id):
+        return "⏸ منتظر تصویر احراز هویت (گفتگو متوقف شده است)"
     return "⏳ احراز هویت نشده (برای خدمات شخصی لازم است)"
 
 

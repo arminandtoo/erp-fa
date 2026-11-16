@@ -18,11 +18,25 @@ database.py ── data/erp.db (SQLite)                 rag.py ── آیین�
 verification.py ── مدل بینایی: شخص + کارت ملی → کد ملی → جستجو در پایگاه داده
 ```
 
+### گراف LangGraph
+
+```mermaid
+graph TD;
+    START([start]) --> agent;
+    agent -.-> END([end]);
+    agent -.-> tools;
+    agent -.-> verification;
+    tools --> agent;
+    verification -.->|عکس تأیید شد| tools;
+    verification -.->|عکس رد شد| verification;
+    verification -.->|کاربر متن فرستاد| agent;
+```
+
+- **انسان در حلقه (HITL):** اگر مدل اطلاعات شخصی بخواهد و کاربر احراز نشده باشد، نود `verification` با `interrupt` گراف را متوقف می‌کند. با رسیدن عکس، گراف با `Command(resume=...)` از همان نقطه ادامه می‌دهد و همان درخواست را کامل می‌کند. وضعیت هر جلسه را checkpointer نگه می‌دارد.
 - **بدون intent classifier:** تشخیص نوع درخواست با tool-calling خود مدل انجام می‌شود.
 - **محاسبات در کد:** دوز، تعداد بسته، تخفیف حجمی و هزینه را `calculate_usage` حساب می‌کند، نه مدل.
 - **RAG محلی:** آیین‌نامه ماده‌به‌ماده تکه می‌شود و با `intfloat/multilingual-e5-small` (روی CPU، بدون API) جستجو می‌شود. مدل در پاسخ نام ماده را ذکر می‌کند.
 - **ردپای پاسخ:** کنار گفتگو نشان داده می‌شود که کدام ابزار با چه ورودی‌ای صدا زده شد و چه برگرداند.
-- **خدمات شخصی محافظت‌شده:** `citizen_service` بدون احراز هویت فقط `verification_required` برمی‌گرداند.
 
 ## اجرا
 

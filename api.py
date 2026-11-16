@@ -30,10 +30,14 @@ class ChatResponse(BaseModel):
     reply: str
     trace: dict
     verified: bool
+    awaiting_image: bool
 
 
 def _respond(session_id, reply, trace):
-    return ChatResponse(session_id=session_id, reply=reply, trace=trace, verified=agent.get_citizen(session_id) is not None)
+    return ChatResponse(
+        session_id=session_id, reply=reply, trace=trace,
+        verified=agent.get_citizen(session_id) is not None,
+        awaiting_image=agent.is_awaiting_image(session_id))
 
 
 @app.get("/health")
