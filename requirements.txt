@@ -1,0 +1,7 @@
+langgraph>=1.0
+langchain-openai>=1.1
+gradio>=6.0
+python-dotenv>=1.0
+jdatetime>=5.0
+pytest>=8.0
+sentence-transformers>=3.0
