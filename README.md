@@ -5,8 +5,10 @@
 ## چطور کار می‌کند
 
 ```
-Gradio (app.py)
-   │
+Gradio (app.py)     FastAPI (api.py)        MCP (mcp_server.py)
+   │                    │                        │ فقط ابزارهای عمومی
+   └────────┬───────────┘                        │
+            │                                    │
 LangGraph agent (agent.py)  ── LLM خودش ابزار مناسب را انتخاب می‌کند
    │
 tools.py ── search_products / get_product / calculate_usage / citizen_service / search_regulations
@@ -32,6 +34,36 @@ cp .env.example .env        # کلید AvalAI را داخلش بگذارید
 ```
 
 سپس <http://127.0.0.1:7860> را باز کنید.
+
+## API
+
+```bash
+.venv/Scripts/python -m uvicorn api:app --port 8000
+```
+
+| مسیر | کار |
+|---|---|
+| `POST /chat` | گفتگو با دستیار؛ پاسخ، ردپا و `session_id` برمی‌گرداند |
+| `POST /verify` | احراز هویت با عکس برای یک `session_id` |
+| `GET /products?q=&category=` | جستجوی محصولات |
+| `GET /products/{sku}` | مشخصات یک محصول |
+| `/docs` | مستندات تعاملی (Swagger) |
+| `/ui` | همان رابط Gradio روی همین سرور |
+
+## MCP
+
+ابزارهای عمومی (`search_products`، `get_product`، `calculate_usage`، `search_regulations`) از طریق MCP هم در دسترس‌اند. اطلاعات شخصی عمداً در MCP نیست. نمونه تنظیم برای Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "sabzdasht": {
+      "command": "D:/data science/llm/erp-fa/.venv/Scripts/python.exe",
+      "args": ["D:/data science/llm/erp-fa/mcp_server.py"]
+    }
+  }
+}
+```
 
 ## تست
 

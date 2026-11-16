@@ -114,3 +114,33 @@ def test_graph_runs_tools_and_keeps_verified_citizen(monkeypatch):
     assert agent.get_citizen("s1")["last_name"] == "احمدی"
     assert "verified as مریم احمدی" in llm.prompts[-1][0].content
     assert agent.get_citizen("other-session") is None
+
+
+def test_api_products_and_chat(monkeypatch):
+    import agent
+    from fastapi.testclient import TestClient
+
+    from api import app
+
+    client = TestClient(app)
+    assert client.get("/products", params={"q": "اوره"}).json()[0]["sku"] == "F-001"
+    assert client.get("/products/NOPE").status_code == 404
+    assert client.post("/chat", json={"message": ""}).status_code == 422
+    assert client.post("/verify", data={"session_id": "x" * 16}, files={"image": ("a.txt", b"hi", "text/plain")}).status_code == 415
+
+    llm = ScriptedLLM([_tool_call("get_product", {"sku": "F-001"}, "c1"), AIMessage(content="قیمت اوره")])
+    monkeypatch.setattr(agent, "get_llm", lambda: llm)
+    body = client.post("/chat", json={"message": "قیمت اوره؟"}).json()
+    assert body["reply"] == "قیمت اوره" and body["verified"] is False
+    assert body["trace"]["steps"][0]["tool"] == "get_product" and len(body["session_id"]) == 32
+
+
+def test_mcp_exposes_only_public_tools():
+    import asyncio
+
+    from mcp_server import mcp
+
+    names = {t.name for t in asyncio.run(mcp.list_tools())}
+    assert names == {"search_products", "get_product", "calculate_usage", "search_regulations"}
+    result = asyncio.run(mcp.call_tool("calculate_usage", {"sku": "F-001", "packages": 12}))
+    assert "16530000" in str(result)

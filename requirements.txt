@@ -5,3 +5,7 @@ python-dotenv>=1.0
 jdatetime>=5.0
 pytest>=8.0
 sentence-transformers>=3.0
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9
+mcp>=1.2
