@@ -164,3 +164,9 @@ def test_mcp_exposes_only_public_tools():
     assert names == {"search_products", "get_product", "calculate_usage", "search_regulations"}
     result = asyncio.run(mcp.call_tool("calculate_usage", {"sku": "F-001", "packages": 12}))
     assert "16530000" in str(result)
+
+
+def test_eval_metrics():
+    from eval.evaluate import metrics
+
+    assert metrics([1, 2, None, 4]) == {"hit@1": 0.25, "hit@3": 0.5, "hit@5": 0.75, "mrr": 0.438}

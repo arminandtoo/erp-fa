@@ -50,7 +50,7 @@ def agent_node(state: State):
     citizen = state.get("citizen")
     identity = f"verified as {citizen['first_name']} {citizen['last_name']}" if citizen else "not verified"
     system = SystemMessage(content=f"{SYSTEM_PROMPT}\n\nUser identity: {identity}.")
-    # ponytail: کل تاریخچه هر بار فرستاده می‌شود؛ اگر گفتگوها طولانی شد trim_messages اضافه شود
+    # TODO: کل تاریخچه هر بار فرستاده می‌شود؛ اگر گفتگوها طولانی شد trim_messages اضافه شود
     response = get_llm().bind_tools(TOOLS).invoke([system] + state["messages"])
     return {"messages": [response]}
 

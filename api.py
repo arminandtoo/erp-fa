@@ -15,7 +15,7 @@ from app import CSS, create_app
 
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
-# ponytail: بدون احراز هویت کلاینت و فقط برای localhost؛ session_id حکم رمز جلسه را دارد.
+# TODO: بدون احراز هویت کلاینت و فقط برای localhost؛ session_id حکم رمز جلسه را دارد.
 # قبل از انتشار روی اینترنت، کلید API در هدر و محدودیت نرخ اضافه شود.
 app = FastAPI(title="Sabzdasht Assistant API", version="1.0.0")
 

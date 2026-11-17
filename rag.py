@@ -71,7 +71,7 @@ def load_index():
 
 def search(query, k=3):
     chunks, vectors = load_index()
-    # ponytail: جستجوی خطی با numpy؛ برای چند هزار تکه به بالا Qdrant یا pgvector لازم می‌شود
+    # TODO: جستجوی خطی با numpy؛ برای چند هزار تکه به بالا Qdrant یا pgvector لازم می‌شود
     scores = vectors @ embed([query], "query: ")[0]
     best = np.argsort(-scores)[:k]
     return [{"source": chunks[i]["source"], "text": chunks[i]["text"], "score": round(float(scores[i]), 3)} for i in best]
